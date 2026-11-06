@@ -1,6 +1,7 @@
 <?php
 
-
 use Illuminate\Support\Facades\Route;
 
-Route::view('/students-app', 'students-app');
+Route::get('/', function () {
+    return view('students-app');
+});

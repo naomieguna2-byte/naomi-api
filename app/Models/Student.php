@@ -6,8 +6,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class Student extends Model
 {
-    protected $table = 'students';
-
     protected $fillable = [
         'student_number',
         'firstname',
@@ -15,6 +13,6 @@ class Student extends Model
         'lastname',
         'email',
         'course',
-        'year_level',
+        'year_level'
     ];
 }

@@ -1,5 +1,8 @@
 
 import { createApp } from 'vue';
+
 import StudentManagement from './components/StudentManagement.vue';
 
-createApp(StudentManagement).mount('#app');
+const app = createApp(StudentManagement);
+
+app.mount('#app');

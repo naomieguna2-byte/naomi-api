@@ -2,163 +2,241 @@
 <template>
     <div class="container">
 
-        <!-- Header -->
+        <!-- HEADER -->
         <header class="header">
             <div>
                 <h1>🎓 Student Management System</h1>
                 <p>Laravel REST API + Vue.js 3</p>
             </div>
 
-            <span class="status">● Connected</span>
-        </header>
+            <div v-if="currentUser" class="user-info">
+                <div>
+                    <strong>{{ currentUser.name }}</strong>
+                    <span class="role">{{ roleName }}</span>
+                </div>
 
-        <!-- Success and Error Messages -->
-        <div v-if="message"
-             :class="['alert', messageType]">
-            {{ message }}
-
-            <button @click="message = ''">×</button>
-        </div>
-
-        <!-- Add / Edit Student Form -->
-        <section class="card">
-
-            <div class="section-heading">
-                <h2>
-                    {{ editing ? 'Edit Student' : 'Add New Student' }}
-                </h2>
-
-                <button v-if="editing"
-                        class="cancel-btn"
-                        @click="resetForm">
-                    Cancel Edit
+                <button
+                    class="logout-btn"
+                    @click="logout"
+                    :disabled="loading"
+                >
+                    Logout
                 </button>
             </div>
+        </header>
 
-            <form @submit.prevent="saveStudent">
+        <!-- LOGIN -->
+        <section v-if="!currentUser" class="card login-card">
 
-                <div class="form-grid">
+            <h2>Account Login</h2>
+            <p>Login to access the Student Management System.</p>
 
-                    <div class="form-group">
-                        <label>Student Number</label>
-                        <input
-                            v-model="form.student_number"
-                            placeholder="Enter student number"
-                            required
-                        >
-                    </div>
+            <form @submit.prevent="login">
 
-                    <div class="form-group">
-                        <label>First Name</label>
-                        <input
-                            v-model="form.firstname"
-                            placeholder="Enter first name"
-                            required
-                        >
-                    </div>
+                <label>Email Address</label>
+                <input
+                    type="email"
+                    v-model.trim="loginForm.email"
+                    placeholder="Enter your email"
+                    required
+                >
 
-                    <div class="form-group">
-                        <label>Middle Name</label>
-                        <input
-                            v-model="form.middlename"
-                            placeholder="Enter middle name"
-                        >
-                    </div>
+                <label>Password</label>
+                <input
+                    type="password"
+                    v-model="loginForm.password"
+                    placeholder="Enter your password"
+                    required
+                >
 
-                    <div class="form-group">
-                        <label>Last Name</label>
-                        <input
-                            v-model="form.lastname"
-                            placeholder="Enter last name"
-                            required
-                        >
-                    </div>
-
-                    <div class="form-group">
-                        <label>Email Address</label>
-                        <input
-                            type="email"
-                            v-model="form.email"
-                            placeholder="Enter email address"
-                            required
-                        >
-                    </div>
-
-                    <div class="form-group">
-                        <label>Course</label>
-                        <input
-                            v-model="form.course"
-                            placeholder="Example: BSIT"
-                            required
-                        >
-                    </div>
-
-                    <div class="form-group">
-                        <label>Year Level</label>
-                        <select v-model="form.year_level" required>
-                            <option value="">Select year level</option>
-                            <option value="1">1st Year</option>
-                            <option value="2">2nd Year</option>
-                            <option value="3">3rd Year</option>
-                            <option value="4">4th Year</option>
-                        </select>
-                    </div>
-
-                </div>
-
-                <!-- Validation Errors -->
-                <div v-if="Object.keys(errors).length"
-                     class="validation">
-                    <p v-for="(error, key) in errors" :key="key">
-                        {{ error[0] }}
-                    </p>
-                </div>
-
-                <button type="submit"
-                        class="submit-btn"
-                        :disabled="saving">
-
-                    {{
-                        saving
-                            ? 'Please wait...'
-                            : editing
-                                ? 'Update Student'
-                                : 'Add Student'
-                    }}
-
+                <button type="submit" :disabled="loading">
+                    {{ loading ? 'Logging in...' : 'Login' }}
                 </button>
 
             </form>
-        </section>
 
-        <!-- Student Records -->
-        <section class="card">
-
-            <div class="section-heading">
-                <div>
-                    <h2>Student Records</h2>
-                    <p class="total">
-                        Total Students: {{ students.length }}
-                    </p>
-                </div>
-
-                <button class="refresh-btn" @click="loadStudents">
-                    ↻ Refresh
-                </button>
+            <div v-if="errorMessage" class="error">
+                {{ errorMessage }}
             </div>
 
-            <p v-if="loading" class="loading">
-                Loading student records...
-            </p>
-
-            <StudentTable
-                v-else
-                :students="students"
-                @edit="editStudent"
-                @delete="deleteStudent"
-            />
-
         </section>
+
+        <!-- AUTHENTICATED CONTENT -->
+        <template v-else>
+
+            <!-- SUCCESS MESSAGE -->
+            <div v-if="successMessage" class="success">
+                {{ successMessage }}
+            </div>
+
+            <!-- ERROR MESSAGE -->
+            <div v-if="errorMessage" class="error">
+                {{ errorMessage }}
+            </div>
+
+            <!-- ADMIN STUDENT FORM -->
+            <section v-if="isAdmin" class="card">
+
+                <h2>
+                    {{ editing ? 'Update Student' : 'Add New Student' }}
+                </h2>
+
+                <form @submit.prevent="saveStudent">
+
+                    <div class="form-grid">
+
+                        <div>
+                            <label>Student Number</label>
+                            <input
+                                v-model.trim="studentForm.student_number"
+                                placeholder="Enter student number"
+                                required
+                            >
+                        </div>
+
+                        <div>
+                            <label>First Name</label>
+                            <input
+                                v-model.trim="studentForm.firstname"
+                                placeholder="Enter first name"
+                                required
+                            >
+                        </div>
+
+                        <div>
+                            <label>Middle Name</label>
+                            <input
+                                v-model.trim="studentForm.middlename"
+                                placeholder="Enter middle name"
+                            >
+                        </div>
+
+                        <div>
+                            <label>Last Name</label>
+                            <input
+                                v-model.trim="studentForm.lastname"
+                                placeholder="Enter last name"
+                                required
+                            >
+                        </div>
+
+                        <div>
+                            <label>Email Address</label>
+                            <input
+                                type="email"
+                                v-model.trim="studentForm.email"
+                                placeholder="Enter email"
+                                required
+                            >
+                        </div>
+
+                        <div>
+                            <label>Course</label>
+                            <input
+                                v-model.trim="studentForm.course"
+                                placeholder="Example: BSIT"
+                                required
+                            >
+                        </div>
+
+                        <div>
+                            <label>Year Level</label>
+                            <select
+                                v-model.number="studentForm.year_level"
+                                required
+                            >
+                                <option disabled value="">
+                                    Select year level
+                                </option>
+                                <option :value="1">1st Year</option>
+                                <option :value="2">2nd Year</option>
+                                <option :value="3">3rd Year</option>
+                                <option :value="4">4th Year</option>
+                                <option :value="5">5th Year</option>
+                                <option :value="6">6th Year</option>
+                            </select>
+                        </div>
+
+                    </div>
+
+                    <!-- VALIDATION ERRORS -->
+                    <div v-if="validationErrors.length" class="error">
+                        <strong>Please correct the following:</strong>
+
+                        <ul>
+                            <li
+                                v-for="(error, index) in validationErrors"
+                                :key="index"
+                            >
+                                {{ error }}
+                            </li>
+                        </ul>
+                    </div>
+
+                    <button type="submit" :disabled="loading">
+                        {{
+                            loading
+                                ? 'Please wait...'
+                                : editing
+                                    ? 'Update Student'
+                                    : 'Add Student'
+                        }}
+                    </button>
+
+                    <button
+                        v-if="editing"
+                        type="button"
+                        class="cancel-btn"
+                        @click="resetForm"
+                    >
+                        Cancel
+                    </button>
+
+                </form>
+            </section>
+
+            <!-- REGULAR USER NOTICE -->
+            <div v-else class="notice">
+                <strong>Regular User Access</strong>
+                <p>
+                    You can view student records, but you cannot
+                    add, edit, or delete students.
+                </p>
+            </div>
+
+            <!-- STUDENT RECORDS -->
+            <section class="card">
+
+                <div class="table-heading">
+                    <div>
+                        <h2>Student Records</h2>
+                        <p>Total Students: {{ students.length }}</p>
+                    </div>
+
+                    <button
+                        class="refresh-btn"
+                        @click="loadStudents"
+                        :disabled="loadingStudents"
+                    >
+                        {{ loadingStudents ? 'Loading...' : 'Refresh' }}
+                    </button>
+                </div>
+
+                <div v-if="loadingStudents" class="loading">
+                    Loading student records...
+                </div>
+
+                <StudentTable
+                    v-else
+                    :students="students"
+                    :can-manage="isAdmin"
+                    @edit="editStudent"
+                    @delete="deleteStudent"
+                />
+
+            </section>
+
+        </template>
 
         <footer>
             Student Management System | Laravel 13 + Vue.js 3
@@ -168,24 +246,49 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+
+import { ref, reactive, computed, onMounted } from 'vue';
 import StudentTable from './StudentTable.vue';
 
-// Laravel API endpoint
-const API_URL = '/api/students';
+// =====================================
+// 1. APPLICATION STATE
+// =====================================
 
-// Reactive data
 const students = ref([]);
+
+const currentUser = ref(null);
+
+const token = ref(localStorage.getItem('token') || '');
+
 const loading = ref(false);
-const saving = ref(false);
+
+const loadingStudents = ref(false);
+
 const editing = ref(false);
-const editId = ref(null);
 
-const message = ref('');
-const messageType = ref('success');
-const errors = ref({});
+const editingId = ref(null);
 
-// Empty form
+const successMessage = ref('');
+
+const errorMessage = ref('');
+
+const validationErrors = ref([]);
+
+
+// =====================================
+// 2. LOGIN FORM STATE
+// =====================================
+
+const loginForm = reactive({
+    email: '',
+    password: ''
+});
+
+
+// =====================================
+// 3. STUDENT FORM STATE
+// =====================================
+
 const emptyForm = () => ({
     student_number: '',
     firstname: '',
@@ -196,239 +299,501 @@ const emptyForm = () => ({
     year_level: ''
 });
 
-const form = reactive(emptyForm());
+const studentForm = reactive(emptyForm());
 
-// Show success or error message
-function showMessage(text, type = 'success') {
-    message.value = text;
-    messageType.value = type;
+
+// =====================================
+// 4. ROLE MANAGEMENT
+// =====================================
+
+const isAdmin = computed(() => {
+    const role = currentUser.value?.role?.toLowerCase();
+
+    return role === 'admin' || role === 'administrator';
+});
+
+const roleName = computed(() => {
+    return isAdmin.value
+        ? 'Administrator'
+        : 'Regular User';
+});
+
+
+// =====================================
+// 5. API REQUEST WITH BEARER TOKEN
+// =====================================
+
+async function apiRequest(url, options = {}) {
+
+    const headers = {
+        'Accept': 'application/json',
+        ...options.headers
+    };
+
+    if (options.body) {
+        headers['Content-Type'] = 'application/json';
+    }
+
+    if (token.value) {
+        headers['Authorization'] = `Bearer ${token.value}`;
+    }
+
+    const response = await fetch(url, {
+        ...options,
+        headers
+    });
+
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+
+        const error = new Error(
+            data.message || 'Something went wrong.'
+        );
+
+        error.status = response.status;
+        error.data = data;
+
+        throw error;
+    }
+
+    return data;
 }
 
-// GET - Retrieve all students
-async function loadStudents() {
+
+// =====================================
+// 6. LOGIN
+// =====================================
+
+async function login() {
+
     loading.value = true;
 
+    errorMessage.value = '';
+    successMessage.value = '';
+    validationErrors.value = [];
+
     try {
-        const response = await fetch(API_URL, {
-            headers: {
-                'Accept': 'application/json'
-            }
+
+        const data = await apiRequest('/api/login', {
+            method: 'POST',
+            body: JSON.stringify(loginForm)
         });
 
-        if (!response.ok) {
-            throw new Error('Unable to retrieve student records.');
+        if (!data.token || !data.user) {
+            throw new Error('Invalid login response from server.');
         }
 
-        const data = await response.json();
+        // SAVE SANCTUM TOKEN
+        token.value = data.token;
+
+        localStorage.setItem('token', data.token);
+
+        // SAVE AUTHENTICATED USER
+        currentUser.value = data.user;
+
+        // CLEAR PASSWORD
+        loginForm.password = '';
+
+        successMessage.value = 'Login successful! Welcome.';
+
+        await loadStudents();
+
+    } catch (error) {
+
+        errorMessage.value =
+            error.data?.message ||
+            error.message ||
+            'Unable to login. Please try again.';
+
+        validationErrors.value =
+            Object.values(error.data?.errors || {}).flat();
+
+    } finally {
+
+        loading.value = false;
+
+    }
+}
+
+
+// =====================================
+// 7. GET AUTHENTICATED USER
+// =====================================
+
+async function getCurrentUser() {
+
+    try {
+
+        const data = await apiRequest('/api/me');
+
+        currentUser.value = data.user || data;
+
+        await loadStudents();
+
+    } catch (error) {
+
+        clearSession();
+
+    }
+}
+
+
+// =====================================
+// 8. LOAD STUDENTS
+// =====================================
+
+async function loadStudents() {
+
+    loadingStudents.value = true;
+
+    errorMessage.value = '';
+
+    try {
+
+        const data = await apiRequest('/api/students');
 
         students.value = Array.isArray(data)
             ? data
             : (data.data || []);
 
     } catch (error) {
-        showMessage(error.message, 'error');
+
+        errorMessage.value =
+            error.data?.message ||
+            'Unable to retrieve student records.';
+
+        if (error.status === 401) {
+            clearSession();
+        }
+
     } finally {
-        loading.value = false;
+
+        loadingStudents.value = false;
+
     }
 }
 
-// POST - Add student
-// PUT - Update student
+
+// =====================================
+// 9. ADD OR UPDATE STUDENT
+// =====================================
+
 async function saveStudent() {
-    saving.value = true;
-    errors.value = {};
+
+    if (!isAdmin.value) {
+
+        errorMessage.value =
+            'You are not authorized to manage students.';
+
+        return;
+    }
+
+    loading.value = true;
+
+    errorMessage.value = '';
+    successMessage.value = '';
+    validationErrors.value = [];
 
     try {
+
+        const studentData = {
+            student_number: studentForm.student_number,
+            firstname: studentForm.firstname,
+            middlename: studentForm.middlename || null,
+            lastname: studentForm.lastname,
+            email: studentForm.email,
+            course: studentForm.course,
+            year_level: studentForm.year_level
+        };
+
         const url = editing.value
-            ? `${API_URL}/${editId.value}`
-            : API_URL;
+            ? `/api/students/${editingId.value}`
+            : '/api/students';
 
         const method = editing.value ? 'PUT' : 'POST';
 
-        const response = await fetch(url, {
-            method: method,
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify(form)
+        await apiRequest(url, {
+            method,
+            body: JSON.stringify(studentData)
         });
 
-        const data = await response.json();
-
-        if (!response.ok) {
-            if (response.status === 422) {
-                errors.value = data.errors || {};
-                throw new Error(
-                    'Please check the information you entered.'
-                );
-            }
-
-            throw new Error(data.message || 'Operation failed.');
-        }
-
-        showMessage(
-            editing.value
-                ? 'Student updated successfully!'
-                : 'Student added successfully!'
-        );
+        successMessage.value = editing.value
+            ? 'Student updated successfully!'
+            : 'Student added successfully!';
 
         resetForm();
+
         await loadStudents();
 
     } catch (error) {
-        showMessage(error.message, 'error');
+
+        if (error.status === 422) {
+
+            validationErrors.value =
+                Object.values(error.data?.errors || {}).flat();
+
+            errorMessage.value =
+                'Please check the student information.';
+
+        } else {
+
+            errorMessage.value =
+                error.data?.message || 'Unable to save student.';
+
+        }
+
+        if (error.status === 401) {
+            clearSession();
+        }
+
     } finally {
-        saving.value = false;
+
+        loading.value = false;
+
     }
 }
 
-// Edit student
-function editStudent(student) {
-    editing.value = true;
-    editId.value = student.id;
 
-    Object.assign(form, {
-        student_number: student.student_number || '',
-        firstname: student.firstname || '',
-        middlename: student.middlename || '',
-        lastname: student.lastname || '',
-        email: student.email || '',
-        course: student.course || '',
-        year_level: String(student.year_level || '')
+// =====================================
+// 10. EDIT STUDENT
+// =====================================
+
+function editStudent(student) {
+
+    if (!isAdmin.value) return;
+
+    Object.assign(studentForm, {
+        student_number: student.student_number ?? '',
+        firstname: student.firstname ?? '',
+        middlename: student.middlename ?? '',
+        lastname: student.lastname ?? '',
+        email: student.email ?? '',
+        course: student.course ?? '',
+        year_level: Number(student.year_level)
     });
 
-    errors.value = {};
+    editingId.value = student.id;
+
+    editing.value = true;
+
+    successMessage.value = '';
+    errorMessage.value = '';
+    validationErrors.value = [];
 
     window.scrollTo({
         top: 0,
         behavior: 'smooth'
     });
+
 }
 
-// DELETE - Remove student
+
+// =====================================
+// 11. DELETE STUDENT
+// =====================================
+
 async function deleteStudent(id) {
-    if (!confirm('Are you sure you want to delete this student?')) {
-        return;
-    }
+
+    if (!isAdmin.value) return;
+
+    const confirmed = window.confirm(
+        'Are you sure you want to delete this student?'
+    );
+
+    if (!confirmed) return;
+
+    loading.value = true;
+
+    errorMessage.value = '';
+    successMessage.value = '';
 
     try {
-        const response = await fetch(`${API_URL}/${id}`, {
-            method: 'DELETE',
-            headers: {
-                'Accept': 'application/json'
-            }
+
+        await apiRequest(`/api/students/${id}`, {
+            method: 'DELETE'
         });
 
-        const data = await response.json();
-
-        if (!response.ok) {
-            throw new Error(data.message || 'Unable to delete student.');
-        }
-
-        showMessage('Student deleted successfully!');
-
-        if (editing.value && editId.value === id) {
-            resetForm();
-        }
+        successMessage.value =
+            'Student deleted successfully!';
 
         await loadStudents();
 
     } catch (error) {
-        showMessage(error.message, 'error');
+
+        errorMessage.value =
+            error.data?.message || 'Unable to delete student.';
+
+        if (error.status === 401) {
+            clearSession();
+        }
+
+    } finally {
+
+        loading.value = false;
+
     }
 }
 
-// Reset form
+
+// =====================================
+// 12. RESET STUDENT FORM
+// =====================================
+
 function resetForm() {
-    Object.assign(form, emptyForm());
+
+    Object.assign(studentForm, emptyForm());
 
     editing.value = false;
-    editId.value = null;
-    errors.value = {};
+
+    editingId.value = null;
+
+    validationErrors.value = [];
+
 }
 
-// Automatically retrieve records when page opens
+
+// =====================================
+// 13. CLEAR AUTHENTICATION SESSION
+// =====================================
+
+function clearSession() {
+
+    token.value = '';
+
+    currentUser.value = null;
+
+    students.value = [];
+
+    localStorage.removeItem('token');
+
+    resetForm();
+
+}
+
+
+// =====================================
+// 14. LOGOUT
+// =====================================
+
+async function logout() {
+
+    loading.value = true;
+
+    try {
+
+        await apiRequest('/api/logout', {
+            method: 'POST'
+        });
+
+        clearSession();
+
+        successMessage.value = '';
+        errorMessage.value = '';
+
+    } catch (error) {
+
+        errorMessage.value =
+            error.data?.message || 'Unable to logout.';
+
+    } finally {
+
+        loading.value = false;
+
+    }
+}
+
+
+// =====================================
+// 15. RESTORE LOGIN SESSION
+// =====================================
+
 onMounted(() => {
-    loadStudents();
+
+    if (token.value) {
+        getCurrentUser();
+    }
+
 });
+
 </script>
 
-<style scoped>
+<style>
 * {
     box-sizing: border-box;
 }
 
+body {
+    margin: 0;
+    background: #f1f5f9;
+    font-family: Arial, sans-serif;
+    color: #1e293b;
+}
+
 .container {
-    max-width: 1300px;
+    max-width: 1200px;
     margin: 40px auto;
     padding: 20px;
-    font-family: Arial, sans-serif;
-    color: #253047;
 }
 
 .header {
-    background: #203e8b;
+    background: #23418b;
     color: white;
     padding: 30px;
-    border-radius: 13px;
+    border-radius: 12px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 25px;
+    flex-wrap: wrap;
+    gap: 15px;
 }
 
 .header h1 {
     margin: 0 0 10px;
-    font-size: 32px;
 }
 
 .header p {
     margin: 0;
 }
 
-.status {
-    background: #15803d;
-    padding: 12px 20px;
-    border-radius: 30px;
-    white-space: nowrap;
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.user-info div {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.role {
+    background: #dbeafe;
+    color: #1e40af;
+    padding: 7px 12px;
+    border-radius: 20px;
+    font-size: 13px;
 }
 
 .card {
     background: white;
-    padding: 27px;
-    border-radius: 14px;
+    padding: 25px;
+    border-radius: 12px;
     margin-bottom: 25px;
-    box-shadow: 0 3px 12px rgba(0,0,0,.07);
+    box-shadow: 0 3px 12px #0000000d;
 }
 
-.section-heading {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 15px;
-    margin-bottom: 25px;
+.login-card {
+    max-width: 500px;
+    margin: 50px auto;
 }
 
-.section-heading h2 {
-    margin: 0;
-    font-size: 25px;
-}
-
-.form-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-}
-
-.form-group {
-    display: flex;
-    flex-direction: column;
-    gap: 9px;
-}
-
-.form-group label {
+label {
+    display: block;
     font-weight: bold;
+    margin: 15px 0 8px;
 }
 
 input, select {
@@ -440,89 +805,88 @@ input, select {
 }
 
 input:focus, select:focus {
-    outline: 2px solid #2563eb;
+    outline: 2px solid #93c5fd;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 20px;
 }
 
 button {
     border: none;
-    border-radius: 7px;
     padding: 12px 18px;
-    color: white;
-    font-weight: bold;
+    border-radius: 6px;
     cursor: pointer;
-}
-
-.submit-btn {
+    font-weight: bold;
+    margin-top: 15px;
     background: #15803d;
-    margin-top: 24px;
+    color: white;
 }
 
-.submit-btn:disabled {
-    opacity: .6;
+button:disabled {
+    opacity: 0.6;
     cursor: not-allowed;
+}
+
+.logout-btn {
+    background: #dc2626;
 }
 
 .cancel-btn {
     background: #64748b;
+    margin-left: 8px;
 }
 
 .refresh-btn {
-    background: #087e77;
+    background: #0f766e;
 }
 
-.alert {
-    padding: 15px;
-    margin-bottom: 20px;
-    border-radius: 8px;
-    display: flex;
-    justify-content: space-between;
-}
-
-.alert.success {
+.success {
     background: #dcfce7;
     color: #166534;
+    padding: 15px;
+    margin-bottom: 20px;
+    border-radius: 7px;
 }
 
-.alert.error {
+.error {
     background: #fee2e2;
-    color: #991b1b;
-}
-
-.alert button {
-    background: transparent;
-    color: inherit;
-    font-size: 20px;
-    padding: 0 5px;
-}
-
-.validation {
     color: #b91c1c;
-    background: #fee2e2;
-    padding: 10px 20px;
+    padding: 15px;
     margin-top: 15px;
     border-radius: 7px;
 }
 
-.validation p {
-    margin: 5px 0;
-}
-
-.total {
-    color: #64748b;
+.notice {
+    background: #dbeafe;
+    color: #1e40af;
+    padding: 18px;
+    border-radius: 8px;
+    margin-bottom: 20px;
 }
 
 .loading {
+    padding: 20px;
     text-align: center;
-    padding: 25px;
+}
+
+.table-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
 }
 
 footer {
     text-align: center;
-    color: #64748b;
     padding: 25px;
+    color: #64748b;
 }
 
 @media (max-width: 700px) {
+
     .form-grid {
         grid-template-columns: 1fr;
     }
@@ -530,11 +894,12 @@ footer {
     .header {
         flex-direction: column;
         align-items: flex-start;
-        gap: 20px;
     }
 
-    .header h1 {
-        font-size: 24px;
+    .table-heading {
+        flex-direction: column;
+        align-items: flex-start;
     }
+
 }
 </style>
