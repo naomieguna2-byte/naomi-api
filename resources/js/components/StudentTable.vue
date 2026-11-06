@@ -57,7 +57,7 @@ defineProps({
         default: () => []
     }
 });
-R
+
 defineEmits(['edit', 'delete']);
 </script>
 
