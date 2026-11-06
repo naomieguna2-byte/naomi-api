@@ -9,101 +9,81 @@ use Illuminate\Validation\Rule;
 
 class StudentController extends Controller
 {
-    // GET: Display all students
+    // READ - Get all students
     public function index()
     {
-        $students = Student::all();
-
-        return response()->json([
-            'message' => 'Student records retrieved successfully.',
-            'data' => $students
-        ], 200);
+        return response()->json(
+            Student::orderBy('id', 'desc')->get()
+        );
     }
 
-    // GET: Display one student
-    public function show($id)
-    {
-        $student = Student::find($id);
-
-        if (!$student) {
-            return response()->json([
-                'message' => 'Student not found.'
-            ], 404);
-        }
-
-        return response()->json([
-            'message' => 'Student retrieved successfully.',
-            'data' => $student
-        ], 200);
-    }
-
-    // POST: Create a student
+    // CREATE - Add a student
     public function store(Request $request)
-{
-    $data = $request->validate([
-    'student_number' => 'required|string|max:50|unique:students,student_number',
-    'firstname' => 'required|string|max:255',
-    'middlename' => 'nullable|string|max:255',
-    'lastname' => 'required|string|max:255',
-    'email' => 'required|email|unique:students,email',
-    'course' => 'required|string|max:255',
-    'year_level' => 'required|integer|min:1|max:6',
-]);
-
-$student = Student::create($data);
-
-return response()->json([
-    'message' => 'Student created successfully!',
-    'data' => $student
-], 201);
-}
-
-    // PUT: Update a student
-    public function update(Request $request, $id)
     {
-        $student = Student::find($id);
-
-        if (!$student) {
-            return response()->json([
-                'message' => 'Student not found.'
-            ], 404);
-        }
-
         $validated = $request->validate([
+            'student_number' => 'required|string|max:50|unique:students,student_number',
             'firstname' => 'required|string|max:255',
             'middlename' => 'nullable|string|max:255',
             'lastname' => 'required|string|max:255',
-            'email' => [
+            'email' => 'required|email|max:255',
+            'course' => 'required|string|max:100',
+            'year_level' => 'required|integer|min:1|max:4',
+        ]);
+
+        $student = Student::create($validated);
+
+        return response()->json([
+            'message' => 'Student added successfully!',
+            'student' => $student
+        ], 201);
+    }
+
+    // READ - Get one student
+    public function show($id)
+    {
+        $student = Student::findOrFail($id);
+
+        return response()->json($student);
+    }
+
+    // UPDATE - Edit student
+    public function update(Request $request, $id)
+    {
+        $student = Student::findOrFail($id);
+
+        $validated = $request->validate([
+            'student_number' => [
                 'required',
-                'email',
-                Rule::unique('students', 'email')->ignore($student->id),
+                'string',
+                'max:50',
+                Rule::unique('students', 'student_number')
+                    ->ignore($student->id),
             ],
-            'course' => 'required|string|max:255',
+            'firstname' => 'required|string|max:255',
+            'middlename' => 'nullable|string|max:255',
+            'lastname' => 'required|string|max:255',
+            'email' => 'required|email|max:255',
+            'course' => 'required|string|max:100',
+            'year_level' => 'required|integer|min:1|max:4',
         ]);
 
         $student->update($validated);
 
         return response()->json([
-            'message' => 'Student updated successfully.',
-            'data' => $student
-        ], 200);
+            'message' => 'Student updated successfully!',
+            'student' => $student
+        ]);
     }
 
-    // DELETE: Remove a student
+    // DELETE - Remove student
     public function destroy($id)
     {
-        $student = Student::find($id);
-
-        if (!$student) {
-            return response()->json([
-                'message' => 'Student not found.'
-            ], 404);
-        }
+        $student = Student::findOrFail($id);
 
         $student->delete();
 
         return response()->json([
-            'message' => 'Student deleted successfully.'
-        ], 200);
+            'message' => 'Student deleted successfully!'
+        ]);
     }
 }

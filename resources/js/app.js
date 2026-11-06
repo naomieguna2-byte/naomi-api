@@ -1,5 +1,5 @@
 
 import { createApp } from 'vue';
-import StudentApp from './components/StudentApp.vue';
+import StudentManagement from './components/StudentManagement.vue';
 
-createApp(StudentApp).mount('#app');
+createApp(StudentManagement).mount('#app');
