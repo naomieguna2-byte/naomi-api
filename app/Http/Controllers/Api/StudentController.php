@@ -39,22 +39,24 @@ class StudentController extends Controller
 
     // POST: Create a student
     public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'firstname' => 'required|string|max:255',
-            'middlename' => 'nullable|string|max:255',
-            'lastname' => 'required|string|max:255',
-            'email' => 'required|email|unique:students,email',
-            'course' => 'required|string|max:255',
-        ]);
+{
+    $data = $request->validate([
+    'student_number' => 'required|string|max:50|unique:students,student_number',
+    'firstname' => 'required|string|max:255',
+    'middlename' => 'nullable|string|max:255',
+    'lastname' => 'required|string|max:255',
+    'email' => 'required|email|unique:students,email',
+    'course' => 'required|string|max:255',
+    'year_level' => 'required|integer|min:1|max:6',
+]);
 
-        $student = Student::create($validated);
+$student = Student::create($data);
 
-        return response()->json([
-            'message' => 'Student created successfully.',
-            'data' => $student
-        ], 201);
-    }
+return response()->json([
+    'message' => 'Student created successfully!',
+    'data' => $student
+], 201);
+}
 
     // PUT: Update a student
     public function update(Request $request, $id)
